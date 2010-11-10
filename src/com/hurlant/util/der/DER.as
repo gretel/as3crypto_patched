@@ -119,9 +119,6 @@ package com.hurlant.util.der
 					der.readBytes(b,0,len);
 					b.position=0;
 					return new ObjectIdentifier(type, len, b);
-				default:
-					trace("I DONT KNOW HOW TO HANDLE DER stuff of TYPE "+type);
-					// fall through
 				case 0x03: // BIT STRING
 					if (der[der.position]==0) {
 						//trace("Horrible Bit String pre-padding removal hack."); // I wish I had the patience to find a spec for this.
@@ -137,6 +134,11 @@ package com.hurlant.util.der
 					// if len!=0, something's horribly wrong.
 					// should I check?
 					return null;
+				// support for type 12
+				case 0x0C: // V_ASN1_UTF8STRING
+					ps = new PrintableString(type, len);
+					ps.setString(der.readMultiByte(len, "utf-8"));
+					return ps;
 				case 0x13: // PrintableString
 					var ps:PrintableString = new PrintableString(type, len);
 					ps.setString(der.readMultiByte(len, "US-ASCII"));
@@ -146,10 +148,18 @@ package com.hurlant.util.der
 					ps = new PrintableString(type, len);
 					ps.setString(der.readMultiByte(len, "latin1"));
 					return ps;
+				// support for type 22
+				case 0x16: // V_ASN1_IA5STRING
+					ps = new PrintableString(type, len);
+					ps.setString(der.readMultiByte(len, "x-IA5"));
+					return ps;
 				case 0x17: // UTCTime
 					var ut:UTCTime = new UTCTime(type, len);
 					ut.setUTCTime(der.readMultiByte(len, "US-ASCII"));
 					return ut;
+				default:
+					throw(new Error("unable to handle DER load, type: "+type));
+					return null;
 			}
 		}
 		
